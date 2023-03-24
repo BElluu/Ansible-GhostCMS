@@ -1,0 +1,13 @@
+    - name: Enusre Ghost-CLI is installed
+      npm:
+        name: ghost-cli
+        state: latest
+        global: True
+
+    - name: Ensure directory for ghost exists
+      file:
+        path: /var/www/{{ ghost_user }}
+        state: directory
+        mode: '0775'
+        owner: "{{ ghost_user }}"
+        group: "{{ ghost_user }}"

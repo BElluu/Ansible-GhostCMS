@@ -1,0 +1,48 @@
+---
+    - name: Ensure password authentication in ssh is disabled
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^PasswordAuthentication yes'
+        line: PasswordAuthentication no
+
+    - name: Ensure port for SSH is changed to 22411
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        line: Port 22411
+        create: True
+
+    - name: Restart SSH service
+      systemd:
+        state: restarted
+        name: sshd
+
+    - name: Ensure ufw allow ssh connection
+      ufw:
+        rule: allow
+        name: OpenSSH
+
+    - name: Ensure ssh port is allowed
+      ufw:
+        rule: allow
+        port: 22411
+
+    - name: Ensure NGINX is allowed in ufw
+      ufw:
+        rule: allow
+        name: Nginx Full
+
+    - name: Ensure 80/tcp for LetsEncrypt is open
+      ufw:
+        proto: tcp
+        rule: allow
+        port: 80
+
+    - name: Ensure 443/tcp for LetsEncrypt is open
+      ufw:
+        proto: tcp
+        rule: allow
+        port: 443
+
+    - name: Ensure ufw is enabled
+      ufw:
+        state: enabled

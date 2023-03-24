@@ -1,0 +1,157 @@
+- hosts: all
+  gather_facts: True
+  tasks:
+
+    - name: Update system packages
+      apt:
+        upgrade: True
+        update_cache: True
+        state: latest
+
+    - name: Create ghostblog group
+      group:
+        name: ghostblog
+        state: present
+
+    - name: Create ghostblog user
+      user:
+        name: ghostblog
+        shell: /bin/bash
+        group: ghostblog
+        update_password: on_create
+        password: "securitypassword"
+
+    - name: Add ghostblog user to sudo group
+      shell: usermod -aG sudo ghostblog
+
+    - name: Create ~/.ssh dir
+      file:
+        path: /home/ghostblog/.ssh
+        state: directory
+        owner: ghostblog
+        group: ghostblog
+        mode: '0700'
+
+    - name: Copy my ssh keys
+      copy:
+        src: /home/belluu/.ssh/id_rsa.pub
+        dest: /home/ghostblog/.ssh/authorized_keys
+        owner: ghostblog
+        group: ghostblog
+        mode: '0600'
+
+    # - name: Ensure password authentication in ssh is disabled
+    #   lineinfile:
+    #     path: /etc/ssh/sshd_config
+    #     regexp: '^PasswordAuthentication yes'
+    #     line: PasswordAuthentication no
+
+    # - name: Ensure port for SSH is chaned for 22411
+    #   lineinfile:
+    #     path: /etc/ssh/sshd_config
+    #     line: Port 22411
+    #     create: True
+
+    # - name: Restart SSH service
+    #   systemd:
+    #     state: restarted
+    #     name: sshd
+
+    # - name: Ensure ufw allow ssh connection
+    #   ufw:
+    #     rule: allow
+    #     name: OpenSSH
+
+    # - name: Ensure ssh port is allowed
+    #   ufw:
+    #     rule: allow
+    #     port: 22411
+
+    - name: Ensure NGINX webserver is installed
+      apt:
+        name: nginx
+        state: present
+
+    # - name: Ensure NGINX is allowed in ufw
+    #   ufw:
+    #     rule: allow
+    #     name: Nginx Full
+
+    # - name: Ensure ufw is enabled
+    #   ufw:
+    #     state: enabled
+
+    # # - name: Ensure MariaDB is installed
+    # #   apt:
+    # #     name:
+    # #       - mariadb-client
+    # #       - mariadb-common
+    # #       - mariadb-server
+
+    # # - name: Set password for ghostblog user in mysql
+    # #   command: mysql -u root --execute "SET PASSWORD FOR 'root'@'localhost' = PASSWORD('password');"
+
+    - name: Ensure NodeJS 12 repository is present
+      shell: curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash
+
+    - name: Ensure NodeJS is installed
+      apt:
+        name: nodejs
+
+    - name: Ensure Python3 is installed
+      apt:
+        name: python3
+
+    - name: Ensure default python interpreter is in 3.x version
+      lineinfile:
+        path: /root/.bashrc
+        line: alias python='/usr/bin/python3.8'
+        create: True
+
+    - name: Ensure pip3 is installed
+      apt:
+        name: python3-pip
+
+    # - name: Ensure PyMySQL is installed
+    #   pip:
+    #     name: pymysql
+    #     state: present
+
+    - name: Ensure MySQL is installed
+      apt:
+        name:
+          - mysql-client
+          - mysql-common
+          - mysql-server
+
+    # - name: Set password for ghostblog user in mysql
+    #   mysql_user:
+    #     name: root
+    #     login_host: 'localhost'
+    #     login_user: 'root'
+    #     login_password: ''
+    #     password: 'password'
+    #     update_password: always
+
+    # - name: Set password for root user in mysql
+    #   command: mysql -u root --execute="UPDATE mysql.user SET authentication_string = PASSWORD('password') WHERE User = 'root' AND (Host = 'localhost' OR Host = '127.0.0.1');"
+
+    - name: Set password for root user in mysql
+      command: mysql -u root --execute="ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'password'"
+
+    - name: Flush privileges in MySQL
+      command: mysql --user=root --password=password --execute="flush privileges;"
+    
+    - name: Enusre Ghost-CLI is installed
+      npm:
+        name: ghost-cli
+        state: latest
+        global: True
+
+    - name: Ensure directory for ghost exists
+      file:
+        path: /var/www/ghostblog
+        state: directory
+        mode: '0775'
+        owner: ghostblog
+        group: ghostblog
